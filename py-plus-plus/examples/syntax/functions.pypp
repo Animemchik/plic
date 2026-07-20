@@ -9,6 +9,6 @@ result = add(3, 4);
 print("3 + 4 =", result);
 
 ## Lambda-style anonymous function using func syntax
-make_multiplier = func(x) { return func(y) { return x * y; }; };
+make_multiplier = func(x) { func(y) { x * y } };
 mult2 = make_multiplier(2);
 print("2 * 5 =", mult2(5));

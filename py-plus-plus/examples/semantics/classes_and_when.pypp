@@ -8,11 +8,11 @@ class Counter {
         if (new_value < 0) {
             raise ValueError("Value cannot be negative");
         }
-        value = new_value;
+        return new_value;
     }
 
-    func increment() {
-        value = value + 1;
+    func increment(self) {
+        self.value = self.value + 1;
     }
 }
 

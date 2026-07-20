@@ -460,6 +460,19 @@ def _rename_macro_names(node: Node, rename_map: Dict[str, str]) -> Node:
             node.body,
             statements,
         )
+        statements = []
+        for stmt in _body_to_list(node.orelse):
+            renamed_stmt = _rename_macro_names(stmt, rename_map)
+            if isinstance(renamed_stmt, list):
+                statements.extend(renamed_stmt)
+            elif isinstance(renamed_stmt, Stmt):
+                statements.append(renamed_stmt)
+            else:
+                raise TypeError(f"Expected Stmt or List[Stmt], got {type(renamed_stmt).__name__}")
+        orelse_stmt = _build_optional_body_stmt(
+            node.orelse,
+            statements,
+        ) if node.orelse is not None else None
         
         target = _rename_macro_names(target, rename_map)
         if not isinstance(target, ForLoopTarget):
@@ -470,6 +483,7 @@ def _rename_macro_names(node: Node, rename_map: Dict[str, str]) -> Node:
             target=target,
             iter=iter,
             body=body_stmt,
+            orelse=orelse_stmt,
         )
     if isinstance(node, With):
         alias = node.alias

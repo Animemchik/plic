@@ -144,10 +144,12 @@ class For(Stmt):
     """
     `for` loop statement over an iterable.
     Example: `for item in collection { ... }`.
+    Supports optional `else` clause.
     """
     target: ForLoopTarget
     iter: Expr
     body: BodyStmt
+    orelse: BodyStmt | None = None
 
 
 @dataclass(frozen=True)

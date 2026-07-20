@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pyplusplus.parser import parse_pyplusplus
-from pyplusplus.ast_nodes import Assign, AugAssign, Await, Call, Constant, FromUse, Lambda, Match, MatchAs, MatchCase, MatchValue, Name, BinOp, Return, FunctionDef, BlockStmt, Subscript, TupleExpr, UnaryOp, ExprStmt
+from pyplusplus.ast_nodes import Assign, AugAssign, Await, Call, Compare, Constant, FromUse, For, Lambda, ListExpr, Match, MatchAs, MatchCase, MatchValue, Name, BinOp, Return, FunctionDef, BlockStmt, Subscript, TupleExpr, UnaryOp, ExprStmt
 
 def test_parse_pyplusplus_simple_expression() -> None:
     source = "x = 1 + 2\n"
@@ -47,6 +47,43 @@ def test_parse_pyplusplus_complex_expression() -> None:
     assert node.value.left.op == "*"
     assert node.value.left.left.op == "+"
     assert node.value.right.op == "/"
+
+
+def test_parse_pyplusplus_comparison_after_name() -> None:
+    source = "result = (new_value < 0);\n"
+    tree = parse_pyplusplus(source)
+    node = tree.body[0]
+
+    assert isinstance(node, Assign)
+    assert isinstance(node.value, Compare)
+    assert isinstance(node.value.left, Name)
+    assert node.value.left.id == "new_value"
+    assert node.value.ops == ["<"]
+    assert isinstance(node.value.comparators[0], Constant)
+    assert node.value.comparators[0].value == 0
+
+
+def test_parse_pyplusplus_for_else() -> None:
+    source = (
+        'sum = 0;\n'
+        'for (i in [1, 2, 3]) {\n'
+        '    sum = sum + i;\n'
+        '} else {\n'
+        '    sum = sum + 10;\n'
+        '}\n'
+    )
+    tree = parse_pyplusplus(source)
+    node = tree.body[1]
+
+    assert isinstance(node, For)
+    assert isinstance(node.target, Name)
+    assert node.target.id == "i"
+    assert isinstance(node.iter, ListExpr)
+    assert node.orelse is not None
+    assert isinstance(node.orelse, BlockStmt)
+    assert len(node.orelse.body) == 1
+    assert isinstance(node.orelse.body[0], Assign)
+    assert node.orelse.body[0].target.id == "sum"
 
 
 def test_parse_pyplusplus_complex_expression_2() -> None:

@@ -595,7 +595,11 @@ class Parser:
         iterable = self.parse_expression()
         self.expect(TokenKind.RPAREN)
         body = self.parse_body()
-        return For(target=target, iter=iterable, body=body)
+        orelse = None
+        if self.match(TokenKind.KEYWORD, "else"):
+            self.advance()
+            orelse = self.parse_body()
+        return For(target=target, iter=iterable, body=body, orelse=orelse)
 
     def parse_while(self) -> While:
         """
@@ -2069,19 +2073,30 @@ class Parser:
                 node = Subscript(value=node, slice=slice_expr)
                 continue
             if self.match(TokenKind.OP, "<"):
+                saved_pos = self.pos
                 self.advance()
                 elements: List[Expr] = []
+                valid_generic = True
                 if not self.match(TokenKind.OP, ">"):
-                    elements.append(self.parse_expression())
-                    while self.match(TokenKind.COMMA):
+                    try:
+                        elements.append(self.parse_expression())
+                    except SyntaxError:
+                        valid_generic = False
+                    while valid_generic and self.match(TokenKind.COMMA):
                         self.advance()
                         if self.match(TokenKind.OP, ">"):
                             break
-                        elements.append(self.parse_expression())
-                self.expect(TokenKind.OP, ">")
-                slice_expr = TupleExpr(elements=elements) if len(elements) != 1 else elements[0]
-                node = Subscript(value=node, slice=slice_expr)
-                continue
+                        try:
+                            elements.append(self.parse_expression())
+                        except SyntaxError:
+                            valid_generic = False
+                            break
+                if valid_generic and self.match(TokenKind.OP, ">"):
+                    self.advance()
+                    slice_expr = TupleExpr(elements=elements) if len(elements) != 1 else elements[0]
+                    node = Subscript(value=node, slice=slice_expr)
+                    continue
+                self.pos = saved_pos
             if self.match(TokenKind.DOT):
                 self.advance()
                 attr = self.expect(TokenKind.NAME).value
